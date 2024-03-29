@@ -1,0 +1,68 @@
+{
+  "terminal.integrated.env.linux": {
+    "PYTHONPATH": "${workspaceFolder}"
+  },
+  "python.defaultInterpreterPath": "venv/bin/python",
+  "python.terminal.activateEnvironment": true,
+  "python.terminal.activateEnvInCurrentTerminal": true,
+  "python.analysis.completeFunctionParens": true,
+  "python.analysis.typeCheckingMode": "basic",
+  "python.analysis.stubPath": ".typings",
+  "editor.formatOnSave": true,
+  "editor.fontSize": 16,
+  "editor.wordWrapColumn": 90,
+  "editor.wordWrap": "wordWrapColumn",
+  "editor.wrappingIndent": "same",
+  "editor.formatOnType": true,
+  "editor.formatOnPaste": false,
+  "editor.cursorStyle": "line",
+  "editor.codeActionsOnSave": {
+    "source.organizeImports": "never"
+  },
+  "editor.smoothScrolling": true,
+  "window.zoomLevel": 0,
+  "files.exclude": {
+    "**/.git": true,
+    "**/.svn": true,
+    "**/.hg": true,
+    "**/CVS": true,
+    "**/.DS_Store": true,
+    "**/Thumbs.db": true,
+    "**/.ipynb*": true
+  },
+  "terminal.integrated.fontSize": 16,
+  "code-runner.runInTerminal": true,
+  "code-runner.clearPreviousOutput": true,
+  "code-runner.showExecutionMessage": false,
+  "code-runner.ignoreSelection": true,
+  "git.ignoreLimitWarning": true,
+  "editor.autoClosingDelete": "never",
+  "[python]": {
+    "editor.defaultFormatter": "ms-python.black-formatter"
+  },
+  "python.languageServer": "Pylance",
+  "workbench.settings.editor": "json",
+  "genieai.openai.temperature": 0,
+  // "python.analysis.diagnosticSeverityOverrides": {
+  //   "reportUnknownVariableType": "none",
+  //   "reportUnusedVariable": "none",
+  //   "reportUnusedImport": "none",
+  //   "reportUnusedExpression": "none",
+  //   "reportUnusedFunction": "none",
+  //   "reportUnknownMemberType": "none",
+  //   "reportUnknownLambdaType": "none",
+  //   "reportMissingParameterType": "none",
+  //   "reportGeneralTypeIssues": "none",
+  //   "reportOptionalOperand": "none",
+  //   "reportUntypedFunctionDecorator": "none",
+  //   "reportPrivateImportUsage": "none"
+  // },
+  // "python.analysis.extraPaths": [
+  //   "./plugins",
+  //   "./src/backend/dags",
+  //   "./src/backend/plugins",
+  //   "./src/backend/pipeline",
+  //   "./src/backend",
+  //   "./src"
+  // ]
+}

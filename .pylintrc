@@ -1,0 +1,3 @@
+[MASTER]
+max-line-length=130
+disable=missing-function-docstring,missing-class-docstring,missing-module-docstring,broad-exception-caught,unused-variable,unused-import,redefined-outer-name, line-too-long, invalid-name

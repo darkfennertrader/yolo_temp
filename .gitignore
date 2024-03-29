@@ -1,0 +1,6 @@
+venv/
+models/
+yolo_dataset/
+converted/
+results/
+*.pyc
