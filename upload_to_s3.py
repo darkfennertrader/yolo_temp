@@ -86,11 +86,15 @@ async def upload_dir_to_s3(
 
 
 async def main():
-    TRAIN_DIRECTORY = "yolo_dataset/train"
-    VALIDATION_DIRECTORY = "yolo_dataset/validation"
-    TEST_DIRECTORY = "yolo_dataset/test"
-    BUCKET = "vvip-yolo-bucket"
-    PREFIXES = ["train/", "validation/", "test/"]
+    dir_name1 = "negative"
+    dir_name2 = "positive"
+    dir_name3 = "test"
+
+    TRAIN_DIRECTORY = f"yolo_dataset/mar24/{dir_name1}"
+    VALIDATION_DIRECTORY = f"yolo_dataset/mar24/{dir_name2}"
+    TEST_DIRECTORY = f"yolo_dataset/mar24/{dir_name3}"
+    BUCKET = "vvip-yolo-bucket2"
+    PREFIXES = ["negative/", "positive/", "test/"]
     session = aioboto3.Session()
 
     print("\nUploading directories and ist structures.....")
@@ -99,19 +103,19 @@ async def main():
         await clean_s3_directory(session, BUCKET, prefix)
 
     files_uploaded = await upload_dir_to_s3(
-        session, BUCKET, TRAIN_DIRECTORY, s3_prefix="train"
+        session, BUCKET, TRAIN_DIRECTORY, s3_prefix=dir_name1
     )
-    print(f"\nTrain files uploaded: {files_uploaded}")
+    print(f"\n{dir_name1} files uploaded: {files_uploaded}")
 
     files_uploaded = await upload_dir_to_s3(
-        session, BUCKET, VALIDATION_DIRECTORY, s3_prefix="validation"
+        session, BUCKET, VALIDATION_DIRECTORY, s3_prefix=dir_name2
     )
-    print(f"\nValidation files uploaded: {files_uploaded}")
+    print(f"\n{dir_name2} files uploaded: {files_uploaded}")
 
     files_uploaded = await upload_dir_to_s3(
-        session, BUCKET, TEST_DIRECTORY, s3_prefix="test"
+        session, BUCKET, TEST_DIRECTORY, s3_prefix=dir_name3
     )
-    print(f"\nTest files uploaded: {files_uploaded}")
+    print(f"\n{dir_name3} files uploaded: {files_uploaded}")
 
 
 if __name__ == "__main__":
