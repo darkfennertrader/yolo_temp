@@ -62,6 +62,9 @@ class YOLOv9:
         self.input_image = input_image
         self.confidence_thres = confidence_thres
         self.iou_thres = iou_thres
+        self.img = None
+        self.img_height = None
+        self.img_width = None
 
         # Load the class names from the COCO dataset
         self.classes = yaml_load(check_yaml("yolo_dataset/dataset.yaml"))["names"]
