@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 # )
 
 ONNX_MODEL = "./models/fine_tuned.onnx"
-CONFIDENCE_THRES = 0.4
+CONFIDENCE_THRES = 0.45
 IOU_THRES = 0.7
 TEST_DIR = "yolo_dataset/mar24/test"
 
