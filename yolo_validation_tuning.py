@@ -30,6 +30,7 @@ if __name__ == "__main__":
     modelpath = "models/fine_tuned.pt"
     valdir = "yolo_dataset/validation/images"
     labelsdir = "yolo_dataset/validation/labels"
+    focus_type = "focus4"
 
     model = YOLO(modelpath)
 
@@ -41,13 +42,15 @@ if __name__ == "__main__":
 
     # List to hold each iteration's metrics
     metrics_data = []
-    for _threshold in generate_linspace(0.0, 0.1, 0.005):
-        filename = generate_unique_filename("tuning_results/focus3/report")
+    for _threshold in generate_linspace(0.3, 0.5, 0.01):
+        filename = generate_unique_filename(f"tuning_results/{focus_type}/report")
         predictions = []
         pred_probabilities = []
         detection_counts = []
         for test_image in test_images:
-            result = model.predict(test_image, conf=_threshold, device=0)[0]
+            result = model.predict(test_image, conf=_threshold, device=0, augment=True)[
+                0
+            ]
             # print(result)
             boxes = result.boxes
 
@@ -86,10 +89,12 @@ if __name__ == "__main__":
 
     # Convert the list of dictionaries to a DataFrame
     metrics_df = pd.DataFrame(metrics_data)
-    metrics_df.to_csv("tuning_results/focus3/metrics_focus3.csv")
+    metrics_df.to_csv(f"tuning_results/{focus_type}/metrics_{focus_type}.csv")
 
     print("\n", "*" * 80)
-    df_results = pd.read_csv("tuning_results/focus3/metrics_focus3.csv", index_col=[0])
+    df_results = pd.read_csv(
+        f"tuning_results/{focus_type}/metrics_{focus_type}.csv", index_col=[0]
+    )
     df_results.set_index("Threshold", inplace=True)
     print(df_results)
     print("\n", "*" * 80)

@@ -53,8 +53,11 @@ class YOLOv9:
         self.color_palette[1] = [0, 0, 255]  # BGR Set the color to red
 
         # Create an inference session using the ONNX model and specify execution providers
+        # self.session = ort.InferenceSession(
+        #     self.onnx_model, providers=["CUDAExecutionProvider", "CPUExecutionProvider"]
+        # )
         self.session = ort.InferenceSession(
-            self.onnx_model, providers=["CUDAExecutionProvider", "CPUExecutionProvider"]
+            self.onnx_model, providers=["CPUExecutionProvider"]
         )
         # Get the model inputs
         self.model_inputs = self.session.get_inputs()
