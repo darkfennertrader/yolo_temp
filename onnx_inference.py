@@ -49,6 +49,8 @@ class YOLOv9:
 
         # Generate a color palette for the classes
         self.color_palette = np.random.uniform(0, 255, size=(len(self.classes), 3))
+        self.color_palette[0] = [0, 255, 0]  # Set the color to green
+        self.color_palette[1] = [0, 0, 255]  # BGR Set the color to red
 
         # Create an inference session using the ONNX model and specify execution providers
         self.session = ort.InferenceSession(
@@ -227,15 +229,39 @@ class YOLOv9:
         return self.postprocess(self.img, outputs)  # output image
 
     @staticmethod
-    def sample_random_image_from_dir(directory, seed=None):
+    def sample_random_image_and_label_from_dir(directory, seed=None):
+        # Get all image files from the directory
         image_files = [
             os.path.join(directory, f)
             for f in os.listdir(directory)
             if os.path.isfile(os.path.join(directory, f))
         ]
+
+        # Seed the random generator if a seed is provided
         if seed:
             random.seed(seed)
-        return random.choice(image_files)
+
+        # Choose a random image file
+        selected_image = random.choice(image_files)
+
+        # Prepare paths to check in positive and negative directories
+        base_dir = os.path.dirname(directory)
+        positive_path = os.path.join(
+            base_dir, "positive", os.path.basename(selected_image)
+        )
+        negative_path = os.path.join(
+            base_dir, "negative", os.path.basename(selected_image)
+        )
+
+        # Determine the label based on the existence of the file in positive/negative directories
+        if os.path.exists(positive_path):
+            label = "positive"
+        elif os.path.exists(negative_path):
+            label = "negative"
+        else:
+            label = "unknown"  # In case the image doesn't exist in either directory for some reason
+
+        return selected_image, label
 
 
 def menu():
@@ -250,25 +276,56 @@ if __name__ == "__main__":
     print("Welcome to YOLOv9 Object Detection for MCNV disease")
     detection = YOLOv9()  # Create an instance of the YOLOv9 class
 
+    while True:
+        choice = menu()
 
-while True:
-    choice = menu()
+        if choice == "1":
+            rand_image, label = YOLOv9.sample_random_image_and_label_from_dir(TEST_DIR)
+            output_image = detection.predict(rand_image)
 
-    if choice == "1":
-        rand_image = YOLOv9.sample_random_image_from_dir(TEST_DIR)
-        output_image = detection.predict(rand_image)
+            # Determine the color based on the label
+            if (
+                "positive" in label.lower()
+            ):  # Assuming "positive" in the label indicates a positive case
+                color = (0, 0, 255)  # Red color in BGR for positive cases
+            else:
+                color = (0, 255, 0)  # Green color in BGR for negative cases
 
-        # Convert BGR image to RGB
-        output_image_rgb = cv2.cvtColor(output_image, cv2.COLOR_BGR2RGB)
+            # Calculate the position to place the label above the image
+            label_height = 35  # Adjust label height as needed
+            output_image_with_label = np.zeros(
+                (output_image.shape[0] + label_height, output_image.shape[1], 3),
+                dtype=np.uint8,
+            )
+            output_image_with_label[label_height:, :] = output_image
 
-        # Use Matplotlib to display the image
-        plt.figure(figsize=(24, 16))  # You can adjust the figure size as needed
-        plt.imshow(output_image_rgb)
-        plt.axis("off")  # Don't show axes for images
-        plt.show()
+            # Add label text above the output image
+            font = cv2.FONT_HERSHEY_SIMPLEX
+            org = (50, label_height - 10)  # Adjust org to place the text appropriately
+            fontScale = 1  # Font scale
+            thickness = 2  # Line thickness in px
+            output_image_with_label = cv2.putText(
+                output_image_with_label,
+                f"Label: {label}",
+                org,
+                font,
+                fontScale,
+                color,
+                thickness,
+                cv2.LINE_AA,
+            )
 
-    elif choice == "2":
-        print("Exiting...")
-        break
-    else:
-        print("Invalid choice. Please select 1 or 2.")
+            # Convert BGR image to RGB
+            output_image_rgb = cv2.cvtColor(output_image_with_label, cv2.COLOR_BGR2RGB)
+
+            # Use Matplotlib to display the image along with the label
+            plt.figure(figsize=(24, 16))  # You can adjust the figure size as needed
+            plt.imshow(output_image_rgb)
+            plt.axis("off")  # Don't show axes for images
+            plt.show()
+
+        elif choice == "2":
+            print("Exiting...")
+            break
+        else:
+            print("Invalid choice. Please select 1 or 2.")
