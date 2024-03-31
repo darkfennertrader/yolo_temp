@@ -1,56 +1,31 @@
 import os
 import random
-import argparse
-from typing import Union, List
 import numpy as np
 import cv2
 import onnxruntime as ort
 import torch
-from ultralytics import YOLO
-from ultralytics.utils import ASSETS, yaml_load
-from ultralytics.utils.checks import check_requirements, check_yaml
+from ultralytics.utils import yaml_load
+import matplotlib.pyplot as plt
 
 # model = YOLO("models/fine_tuned.pt").export(
 #     format="onnx", opset=9, data="yolo_dataset/dataset.yaml"
 # )
 
-
-def sample_random_image_from_dir(directory_path, seed=None, valid_extensions=("jpeg")):
-    """
-    Select a random image file from a specified directory.
-
-    Parameters:
-    - directory_path: The path to the directory containing image files.
-    - valid_extensions: A tuple of valid image file extensions.
-
-    Returns:
-    The full path to a randomly selected image file.
-    """
-    # List all files in the directory
-    all_files = os.listdir(directory_path)
-
-    # Filter for files with valid image extensions
-    image_files = [
-        file for file in all_files if file.lower().endswith(valid_extensions)
-    ]
-
-    if not image_files:
-        raise ValueError("No image files found in the specified directory")
-
-    # Select a random image file
-    if seed:
-        random.seed(seed)
-
-    selected_image = random.choice(image_files)
-
-    # Return the full path to the selected image
-    return os.path.join(directory_path, selected_image)
+ONNX_MODEL = "./models/fine_tuned.onnx"
+CONFIDENCE_THRES = 0.4
+IOU_THRES = 0.7
+TEST_DIR = "yolo_dataset/mar24/test"
 
 
 class YOLOv9:
     """YOLOv8 object detection model class for handling inference and visualization."""
 
-    def __init__(self, onnx_model, input_image, confidence_thres, iou_thres):
+    def __init__(
+        self,
+        onnx_model=ONNX_MODEL,
+        confidence_thres=CONFIDENCE_THRES,
+        iou_thres=IOU_THRES,
+    ):
         """
         Initializes an instance of the YOLOv8 class.
 
@@ -60,8 +35,8 @@ class YOLOv9:
             confidence_thres: Confidence threshold for filtering detections.
             iou_thres: IoU (Intersection over Union) threshold for non-maximum suppression.
         """
+
         self.onnx_model = onnx_model
-        self.input_image = input_image
         self.confidence_thres = confidence_thres
         self.iou_thres = iou_thres
         self.img = None
@@ -74,6 +49,18 @@ class YOLOv9:
 
         # Generate a color palette for the classes
         self.color_palette = np.random.uniform(0, 255, size=(len(self.classes), 3))
+
+        # Create an inference session using the ONNX model and specify execution providers
+        self.session = ort.InferenceSession(
+            self.onnx_model, providers=["CUDAExecutionProvider", "CPUExecutionProvider"]
+        )
+        # Get the model inputs
+        self.model_inputs = self.session.get_inputs()
+
+        # Store the shape of the input for later use
+        input_shape = self.model_inputs[0].shape
+        self.input_width = input_shape[2]
+        self.input_height = input_shape[3]
 
     def draw_detections(self, img, box, score, class_id):
         """
@@ -96,7 +83,7 @@ class YOLOv9:
         color = self.color_palette[class_id]
 
         # Draw the bounding box on the image
-        cv2.rectangle(img, (int(x1), int(y1)), (int(x1 + w), int(y1 + h)), color, 2)
+        cv2.rectangle(img, (int(x1), int(y1)), (int(x1 + w), int(y1 + h)), color, 2)  # type: ignore
 
         # Create the label text with class name and score
         label = f"{self.classes[class_id]}: {score:.2f}"
@@ -115,7 +102,7 @@ class YOLOv9:
             img,
             (label_x, label_y - label_height),
             (label_x + label_width, label_y + label_height),
-            color,
+            color,  # type: ignore
             cv2.FILLED,
         )
 
@@ -131,7 +118,7 @@ class YOLOv9:
             cv2.LINE_AA,
         )
 
-    def preprocess(self):
+    def preprocess(self, input_image):
         """
         Preprocesses the input image before performing inference.
 
@@ -139,7 +126,7 @@ class YOLOv9:
             image_data: Preprocessed image data ready for inference.
         """
         # Read the input image using OpenCV
-        self.img = cv2.imread(self.input_image)
+        self.img = cv2.imread(input_image)
 
         # Get the height and width of the input image
         self.img_height, self.img_width = self.img.shape[:2]
@@ -232,72 +219,56 @@ class YOLOv9:
         # Return the modified input image
         return input_image
 
-    def main(self):
-        """
-        Performs inference using an ONNX model and returns the output image with drawn detections.
-
-        Returns:
-            output_img: The output image with drawn detections.
-        """
-        # Create an inference session using the ONNX model and specify execution providers
-        session = ort.InferenceSession(
-            self.onnx_model, providers=["CUDAExecutionProvider", "CPUExecutionProvider"]
-        )
-
-        # Get the model inputs
-        model_inputs = session.get_inputs()
-
-        # Store the shape of the input for later use
-        input_shape = model_inputs[0].shape
-        self.input_width = input_shape[2]
-        self.input_height = input_shape[3]
-
-        # Preprocess the image data
-        img_data = self.preprocess()
-
+    def predict(self, input_image):
+        img_data = self.preprocess(input_image)
         # Run inference using the preprocessed image data
-        outputs = session.run(None, {model_inputs[0].name: img_data})
-
+        outputs = self.session.run(None, {self.model_inputs[0].name: img_data})
         # Perform post-processing on the outputs to obtain output image.
         return self.postprocess(self.img, outputs)  # output image
 
+    @staticmethod
+    def sample_random_image_from_dir(directory, seed=None):
+        image_files = [
+            os.path.join(directory, f)
+            for f in os.listdir(directory)
+            if os.path.isfile(os.path.join(directory, f))
+        ]
+        if seed:
+            random.seed(seed)
+        return random.choice(image_files)
+
+
+def menu():
+    print("\nMenu:")
+    print("1. Predict random image")
+    print("2. Exit")
+    return input("Enter your choice (1-2): ")
+
 
 if __name__ == "__main__":
-    rand_image = sample_random_image_from_dir("yolo_dataset/mar24/test")
 
-    # Create an argument parser to handle command-line arguments
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--model",
-        type=str,
-        default="models/fine_tuned.onnx",
-        help="Input your ONNX model.",
-    )
-    parser.add_argument(
-        "--img", type=str, default=rand_image, help="Path to input image."
-    )
-    parser.add_argument(
-        "--conf-thres", type=float, default=0.25, help="Confidence threshold"
-    )
-    parser.add_argument(
-        "--iou-thres", type=float, default=0.7, help="NMS IoU threshold"
-    )
-    args = parser.parse_args()
+    print("Welcome to YOLOv9 Object Detection for MCNV disease")
+    detection = YOLOv9()  # Create an instance of the YOLOv9 class
 
-    # Check the requirements and select the appropriate backend (CPU or GPU)
-    check_requirements(
-        "onnxruntime-gpu" if torch.cuda.is_available() else "onnxruntime"
-    )
 
-    # Create an instance of the YOLOv8 class with the specified arguments
-    detection = YOLOv9(args.model, args.img, args.conf_thres, args.iou_thres)
+while True:
+    choice = menu()
 
-    # Perform object detection and obtain the output image
-    output_image = detection.main()
+    if choice == "1":
+        rand_image = YOLOv9.sample_random_image_from_dir(TEST_DIR)
+        output_image = detection.predict(rand_image)
 
-    # Display the output image in a window
-    cv2.namedWindow("Output", cv2.WINDOW_NORMAL)
-    cv2.imshow("Output", output_image)
+        # Convert BGR image to RGB
+        output_image_rgb = cv2.cvtColor(output_image, cv2.COLOR_BGR2RGB)
 
-    # Wait for a key press to exit
-    cv2.waitKey(0)
+        # Use Matplotlib to display the image
+        plt.figure(figsize=(24, 16))  # You can adjust the figure size as needed
+        plt.imshow(output_image_rgb)
+        plt.axis("off")  # Don't show axes for images
+        plt.show()
+
+    elif choice == "2":
+        print("Exiting...")
+        break
+    else:
+        print("Invalid choice. Please select 1 or 2.")

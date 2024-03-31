@@ -7,6 +7,38 @@ from PIL import Image
 import torch
 
 
+def sample_random_image_from_dir(directory_path, seed=None, valid_extensions=("jpeg")):
+    """
+    Select a random image file from a specified directory.
+
+    Parameters:
+    - directory_path: The path to the directory containing image files.
+    - valid_extensions: A tuple of valid image file extensions.
+
+    Returns:
+    The full path to a randomly selected image file.
+    """
+    # List all files in the directory
+    all_files = os.listdir(directory_path)
+
+    # Filter for files with valid image extensions
+    image_files = [
+        file for file in all_files if file.lower().endswith(valid_extensions)
+    ]
+
+    if not image_files:
+        raise ValueError("No image files found in the specified directory")
+
+    # Select a random image file
+    if seed:
+        random.seed(seed)
+
+    selected_image = random.choice(image_files)
+
+    # Return the full path to the selected image
+    return os.path.join(directory_path, selected_image)
+
+
 def format_output_single_element(cls, conf, data):
     # Find the index of the maximum confidence score
     max_conf_index = torch.argmax(conf)
