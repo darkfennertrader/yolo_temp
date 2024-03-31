@@ -10,12 +10,12 @@ from ultralytics import YOLO
 from ultralytics.utils import ASSETS, yaml_load
 from ultralytics.utils.checks import check_requirements, check_yaml
 
-# model = YOLO("models/best.pt").export(
+# model = YOLO("models/fine_tuned.pt").export(
 #     format="onnx", opset=9, data="yolo_dataset/dataset.yaml"
 # )
 
 
-def sample_random_image_from_dir(directory_path, seed=42, valid_extensions=("jpeg")):
+def sample_random_image_from_dir(directory_path, seed=None, valid_extensions=("jpeg")):
     """
     Select a random image file from a specified directory.
 
@@ -38,7 +38,9 @@ def sample_random_image_from_dir(directory_path, seed=42, valid_extensions=("jpe
         raise ValueError("No image files found in the specified directory")
 
     # Select a random image file
-    random.seed(seed)
+    if seed:
+        random.seed(seed)
+
     selected_image = random.choice(image_files)
 
     # Return the full path to the selected image
@@ -67,7 +69,8 @@ class YOLOv9:
         self.img_width = None
 
         # Load the class names from the COCO dataset
-        self.classes = yaml_load(check_yaml("yolo_dataset/dataset.yaml"))["names"]
+        # self.classes = yaml_load(check_yaml("yolo_dataset/dataset.yaml"))["names"]
+        self.classes = yaml_load("yolo_dataset/dataset.yaml")["names"]
 
         # Generate a color palette for the classes
         self.color_palette = np.random.uniform(0, 255, size=(len(self.classes), 3))
@@ -260,13 +263,18 @@ class YOLOv9:
 
 
 if __name__ == "__main__":
+    rand_image = sample_random_image_from_dir("yolo_dataset/mar24/test")
+
     # Create an argument parser to handle command-line arguments
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--model", type=str, default="models/best.onnx", help="Input your ONNX model."
+        "--model",
+        type=str,
+        default="models/fine_tuned.onnx",
+        help="Input your ONNX model.",
     )
     parser.add_argument(
-        "--img", type=str, default=str(ASSETS / "bus.jpg"), help="Path to input image."
+        "--img", type=str, default=rand_image, help="Path to input image."
     )
     parser.add_argument(
         "--conf-thres", type=float, default=0.25, help="Confidence threshold"

@@ -1,8 +1,122 @@
 import os
 import shutil
 import random
-from PIL import Image
 from typing import Tuple
+from PIL import Image
+import torch
+
+
+def format_output_single_element(cls, conf, data):
+    # Find the index of the maximum confidence score
+    max_conf_index = torch.argmax(conf)
+
+    # Extract corresponding elements for class, confidence, and data
+    cls_max = cls[max_conf_index].unsqueeze(0)  # Class ID as single-element tensor
+    conf_max = conf[max_conf_index].unsqueeze(
+        0
+    )  # Max confidence as single-element tensor
+    data_max = data[max_conf_index].unsqueeze(0)  # Data row as single-row tensor
+
+    # Get the number of elements in the 'conf' tensor
+    num_elements = conf.numel()
+
+    return cls_max, conf_max, num_elements, data_max
+
+
+def print_first_n_elements(input_dict, n):
+    # Iterate over both keys and values in the dictionary
+    for i, (key, value) in enumerate(input_dict.items()):
+        if i < n:
+            print(f"{key}: {value}")
+        else:
+            break  # Stop after printing the Nth element
+
+
+def numerical_sort(filename):
+    basename = os.path.splitext(filename)[0]  # Remove the extension
+    try:
+        number = int(basename)  # Convert to integer for comparison
+        return (0, number)  # Leading 0 indicates a successful int conversion
+    except ValueError:
+        # In case the filename doesn't start with a number, use lexicographic sort
+        return (1, basename)  # Leading 1 indicates fall back to lexicographic
+
+
+def read_yolo_labels_ordered_modified(labels_dir):
+    labels_dict = {}
+
+    # Iterate over files in the labels directory, sorted alphabetically
+    for label_file in sorted(os.listdir(labels_dir)):
+        # Ensure we're only reading .txt files
+        if label_file.endswith(".txt"):
+            # Extract the filename without the extension for use as a key and append .jpeg
+            file_key = os.path.splitext(label_file)[0] + ".jpeg"
+            # Initialize list to store object details
+            labels_for_file = []
+
+            # Read lines from the label file
+            with open(
+                os.path.join(labels_dir, label_file), "r", encoding="utf-8"
+            ) as file:
+                lines = file.readlines()
+
+                # Check if file is empty
+                if not lines:
+                    labels_for_file.append((0, None, None, None, None))
+                else:
+                    for line in lines:
+                        parts = line.strip().split()
+                        class_id, x_center, y_center, width, height = map(float, parts)
+                        class_id = int(class_id)
+
+                        # Append object details to the list as a tuple
+                        labels_for_file.append(
+                            (class_id, x_center, y_center, width, height)
+                        )
+
+            # Map list of tuples to the filename key in the dictionary
+            labels_dict[file_key] = labels_for_file
+
+    return labels_dict
+
+
+def prepare_labels_for_sklearn(labels_dict):
+    y_true = []
+
+    for _, object_list in labels_dict.items():
+        # Only consider the first object for this example
+        obj = object_list[0]
+        # Directly append the class ID; since `(0, None, None, None, None)` should also count as a valid label
+        y_true.append(obj[0])
+
+    return y_true
+
+
+def list_of_images(dirpath):
+    # Get a list of all files in the directory
+    all_files = [os.path.join(dirpath, f) for f in os.listdir(dirpath)]
+
+    # Filter out non-image files (assuming images have extensions like .jpg, .jpeg, .png, etc.)
+    image_files = [f for f in all_files if f.lower().endswith((".jpeg"))]
+    return sorted(image_files)
+
+
+def assign_labels(pos_dir, neg_dir, test_dir):
+    labels = []
+    for file in sorted(os.listdir(test_dir)):
+        pos_path = os.path.join(pos_dir, file)
+        neg_path = os.path.join(neg_dir, file)
+
+        if os.path.exists(pos_path):
+            labels.append(1)
+        elif os.path.exists(neg_path):
+            labels.append(0)
+        else:
+            raise FileNotFoundError(
+                f"No duplicate found for {file} in either positive or negative directories."
+            )
+
+    return labels
 
 
 def rename_files_with_suffix(directory_path, suffix="_p"):
@@ -78,7 +192,7 @@ def rename_and_copy_files(common_files: list, dir1: str, target_dir: str):
         os.remove(os.path.join(dir1, filename))
 
 
-def clean_destination_dirs(base_path: str, dirs: Tuple[str]):
+def clean_destination_dirs(base_path: str, dirs: Tuple[str, ...]):
     """
     Removes specified directories and their contents, then recreates the directories.
     """

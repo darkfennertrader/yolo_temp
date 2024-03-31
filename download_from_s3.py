@@ -29,7 +29,7 @@ def download_s3_folder(bucket_name, s3_folder, local_dir):
 
 # Example usage
 bucket_name = "vvip-yolo-bucket"
-s3_folder = "train/labels/"  # Make sure it ends with a '/'
-local_dir = "yolo_dataset/train/labels"  # The target local directory
+s3_folder = "validation/"  # Make sure it ends with a '/'
+local_dir = "yolo_dataset/validation"  # The target local directory
 
 download_s3_folder(bucket_name, s3_folder, local_dir)

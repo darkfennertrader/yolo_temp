@@ -121,7 +121,7 @@ def assign_labels(pos_dir, neg_dir, test_dir):
 
 if __name__ == "__main__":
 
-    modelpath = "models/best.pt"
+    modelpath = "models/fine_tuned.pt"
     model = YOLO(modelpath)
 
     # convert_images_to_jpeg("yolo_dataset/mar24/positive")
