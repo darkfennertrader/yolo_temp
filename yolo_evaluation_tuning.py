@@ -41,8 +41,8 @@ if __name__ == "__main__":
 
     # List to hold each iteration's metrics
     metrics_data = []
-    for _threshold in generate_linspace(0.35, 0.45, 0.01):
-        filename = generate_unique_filename("tuning_results/report")
+    for _threshold in generate_linspace(0.0, 0.1, 0.005):
+        filename = generate_unique_filename("tuning_results/focus3/report")
         predictions = []
         pred_probabilities = []
         detection_counts = []
@@ -86,10 +86,10 @@ if __name__ == "__main__":
 
     # Convert the list of dictionaries to a DataFrame
     metrics_df = pd.DataFrame(metrics_data)
-    metrics_df.to_csv("tuning_results/metrics.csv")
+    metrics_df.to_csv("tuning_results/focus3/metrics_focus3.csv")
 
     print("\n", "*" * 80)
-    df_results = pd.read_csv("tuning_results/metrics.csv", index_col=[0])
+    df_results = pd.read_csv("tuning_results/focus3/metrics_focus3.csv", index_col=[0])
     df_results.set_index("Threshold", inplace=True)
     print(df_results)
     print("\n", "*" * 80)
