@@ -4,3 +4,4 @@ yolo_dataset/
 converted/
 results/
 *.pyc
+tuning_results/

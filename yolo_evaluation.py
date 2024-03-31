@@ -152,7 +152,7 @@ if __name__ == "__main__":
     pred_probabilities = []
     detection_counts = []
     for test_image in test_images:
-        result = model.predict(test_image, device=0)[0]
+        result = model.predict(test_image, conf=0.40, device=0)[0]
         # print(result)
         boxes = result.boxes
 
@@ -181,4 +181,4 @@ if __name__ == "__main__":
     print(metrics.compute_f1())
     print(metrics.compute_precision())
     print(metrics.compute_recall())
-    metrics.save_and_show_plots("metrics_test_new.jpeg", show=True)
+    metrics.save_and_show_plots("metrics_test_conf=0.40.jpeg", show=True)

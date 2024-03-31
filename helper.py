@@ -1,5 +1,6 @@
 import os
 import shutil
+import datetime
 import random
 from typing import Tuple
 from PIL import Image
@@ -203,6 +204,17 @@ def clean_destination_dirs(base_path: str, dirs: Tuple[str, ...]):
         os.makedirs(os.path.join(dir_path, "images"), exist_ok=True)
         os.makedirs(os.path.join(dir_path, "labels"), exist_ok=True)
     print("Destination directories cleaned and recreated.")
+
+
+def generate_unique_filename(base_filename: str, ext: str = "jpeg") -> str:
+
+    # Get the current datetime
+    now = datetime.datetime.now()
+    # Format the datetime string. For example: "2023-04-10_12-30-00"
+    # This replaces colons with hyphens for wider OS compatibility
+    formatted_datetime = now.strftime("%Y-%m-%d-%H%M%S")
+    # Append the formatted datetime to your filename and add extension
+    return f"{base_filename}_{formatted_datetime}.{ext}"
 
 
 def split_and_copy_dataset(
