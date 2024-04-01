@@ -1,13 +1,12 @@
 import os
 import random
-import asyncio
+from multiprocessing import Pool, cpu_count
 import numpy as np
 import cv2
-from PIL import Image
 import onnxruntime as ort
 from ultralytics.utils import yaml_load
 import matplotlib.pyplot as plt
-from helper import list_of_images, convert_images_to_jpeg
+from helper import convert_images_to_jpeg
 
 # model = YOLO("models/fine_tuned.pt").export(
 #     format="onnx", opset=9, data="yolo_dataset/dataset.yaml"
@@ -215,11 +214,22 @@ class YOLOv9:
         indices = cv2.dnn.NMSBoxes(boxes, scores, self.confidence_thres, self.iou_thres)
 
         # Iterate over the selected indices after non-maximum suppression
+        score_candidates = []
         for i in indices:
             # Get the box, score, and class ID corresponding to the index
             box = boxes[i]
             score = scores[i]
+            print(score)
             class_id = class_ids[i]
+            print(class_id)
+            score_candidates.append(score)
+
+        # draw the rectangle that corresponds to the max predicted prob. if any
+        if len(score_candidates) > 0:
+            max_value_index = score_candidates.index(max(score_candidates))
+            box = boxes[max_value_index]
+            score = scores[max_value_index]
+            class_id = class_ids[max_value_index]
 
             # Draw the detection on the input image
             self.draw_detections(input_image, box, score, class_id)
@@ -236,11 +246,11 @@ class YOLOv9:
 
     @staticmethod
     def sample_random_image_and_label_from_dir(directory, seed=None):
-        # Get all image files from the directory
+        # Get all image files from the directory that ends with .jpeg
         image_files = [
             os.path.join(directory, f)
             for f in os.listdir(directory)
-            if os.path.isfile(os.path.join(directory, f))
+            if os.path.isfile(os.path.join(directory, f)) and f.endswith(".jpeg")
         ]
 
         # Seed the random generator if a seed is provided
@@ -315,6 +325,21 @@ class YOLOv9:
         return list(selected_images), list(labels)
 
 
+def worker_function(image_path, ground_truth):
+    # Create a new instance inside each worker
+    yolo_instance = YOLOv9()
+    prediction = yolo_instance.predict(image_path)
+    return (prediction, ground_truth, image_path)
+
+
+def perform_predictions_in_parallel(image_paths, ground_truths):
+    # Context manager for the multiprocessing pool
+    with Pool(processes=cpu_count() - 1) as pool:
+        results = pool.starmap(worker_function, zip(image_paths, ground_truths))
+
+    return results
+
+
 def menu():
     print("\nMenu:")
     print("1. Predict a random image")
@@ -378,7 +403,12 @@ if __name__ == "__main__":
             plt.show()
 
         elif choice == "2":
-            pass
+            images_list, labels_list = YOLOv9.get_sorted_images_and_labels_from_dir(
+                TEST_DIR
+            )
+            print("\nPerforming predictions in parallel. Please wait...")
+            results = perform_predictions_in_parallel(images_list, labels_list)
+            print("\n", results)
 
         elif choice == "3":
             print("Exiting...")
