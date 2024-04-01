@@ -30,7 +30,7 @@ if __name__ == "__main__":
     modelpath = "models/fine_tuned.pt"
     valdir = "yolo_dataset/validation/images"
     labelsdir = "yolo_dataset/validation/labels"
-    focus_type = "focus5"
+    focus_type = "focus6"
 
     os.makedirs(f"tuning_results/{focus_type}", exist_ok=False)
 
@@ -50,9 +50,9 @@ if __name__ == "__main__":
         pred_probabilities = []
         detection_counts = []
         for test_image in test_images:
-            result = model.predict(test_image, conf=_threshold, device=0, augment=True)[
-                0
-            ]
+            result = model.predict(
+                test_image, conf=_threshold, device=0, augment=True, verbose=False
+            )[0]
             # print(result)
             boxes = result.boxes
 

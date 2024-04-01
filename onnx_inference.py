@@ -1,11 +1,13 @@
 import os
 import random
+import asyncio
 import numpy as np
 import cv2
+from PIL import Image
 import onnxruntime as ort
-import torch
 from ultralytics.utils import yaml_load
 import matplotlib.pyplot as plt
+from helper import list_of_images, convert_images_to_jpeg
 
 # model = YOLO("models/fine_tuned.pt").export(
 #     format="onnx", opset=9, data="yolo_dataset/dataset.yaml"
@@ -14,7 +16,7 @@ import matplotlib.pyplot as plt
 ONNX_MODEL = "./models/fine_tuned.onnx"
 CONFIDENCE_THRES = 0.45
 IOU_THRES = 0.7
-TEST_DIR = "yolo_dataset/mar24/test"
+TEST_DIR = "yolo_dataset/mar24/test2"
 
 
 class YOLOv9:
@@ -130,6 +132,7 @@ class YOLOv9:
         Returns:
             image_data: Preprocessed image data ready for inference.
         """
+
         # Read the input image using OpenCV
         self.img = cv2.imread(input_image)
 
@@ -266,18 +269,65 @@ class YOLOv9:
 
         return selected_image, label
 
+    @staticmethod
+    def get_sorted_images_and_labels_from_dir(directory):
+        # Get all image files from the directory
+        image_files = [
+            os.path.join(directory, f)
+            for f in os.listdir(directory)
+            if os.path.isfile(os.path.join(directory, f))
+        ]
+
+        # Prepare base directory for positive and negative path checks
+        base_dir = os.path.dirname(directory)
+
+        # Initialize a list to hold tuples of (selected_image, label)
+        images_and_labels = []
+
+        # Loop through all image files to determine their labels
+        for image_file in image_files:
+            positive_path = os.path.join(
+                base_dir, "positive", os.path.basename(image_file)
+            )
+            negative_path = os.path.join(
+                base_dir, "negative", os.path.basename(image_file)
+            )
+
+            # Determine the label based on the existence of the file in positive/negative directories
+            if os.path.exists(positive_path):
+                label = 1  # Label for positive
+            elif os.path.exists(negative_path):
+                label = 0  # Label for negative
+            else:
+                continue  # Skip images that don't exist in either directory
+
+            # Append the selected image and its label as a tuple
+            images_and_labels.append((image_file, label))
+
+        # Sort the list of tuples based on the image files
+        images_and_labels.sort(key=lambda x: x[0])
+
+        # Unpack the sorted list of tuples into two lists
+        selected_images, labels = (
+            zip(*images_and_labels) if images_and_labels else ([], [])
+        )
+
+        return list(selected_images), list(labels)
+
 
 def menu():
     print("\nMenu:")
-    print("1. Predict random image")
-    print("2. Exit")
-    return input("Enter your choice (1-2): ")
+    print("1. Predict a random image")
+    print("2. Predict all images")
+    print("3. Exit")
+    return input("Enter your choice (1-3): ")
 
 
 if __name__ == "__main__":
 
     print("Welcome to YOLOv9 Object Detection for MCNV disease")
     detection = YOLOv9()  # Create an instance of the YOLOv9 class
+    convert_images_to_jpeg(TEST_DIR)
 
     while True:
         choice = menu()
@@ -328,7 +378,10 @@ if __name__ == "__main__":
             plt.show()
 
         elif choice == "2":
+            pass
+
+        elif choice == "3":
             print("Exiting...")
             break
         else:
-            print("Invalid choice. Please select 1 or 2.")
+            print("Invalid choice. Please select 1, 2 or 3.")

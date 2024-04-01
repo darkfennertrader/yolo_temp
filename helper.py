@@ -7,6 +7,31 @@ from PIL import Image
 import torch
 
 
+# def convert_images_to_jpeg(directory):
+#     # Iterate over all files in the directory
+#     for filename in os.listdir(directory):
+#         # Check if the file is an image and not already a .jpeg
+#         if not filename.lower().endswith(".jpeg"):
+#             # Construct the full file path
+#             file_path = os.path.join(directory, filename)
+#             # Attempt to open the image
+#             try:
+#                 with Image.open(file_path) as img:
+#                     # Define the new filename with .jpeg extension
+#                     new_filename = os.path.splitext(filename)[0] + ".jpeg"
+#                     new_file_path = os.path.join(directory, new_filename)
+#                     # Convert and save the image in .jpeg format
+#                     img.convert("RGB").save(new_file_path, "JPEG")
+#                     # If the new file was successfully created, delete the original file
+#                     if os.path.exists(new_file_path):
+#                         os.remove(file_path)
+#                         print(f"Converted and removed: {filename}")
+#                     else:
+#                         print(f"Failed to convert: {filename}")
+#             except IOError:
+#                 print(f"Error opening or processing image: {filename}")
+
+
 def sample_random_image_from_dir(directory_path, seed=None, valid_extensions=("jpeg")):
     """
     Select a random image file from a specified directory.
