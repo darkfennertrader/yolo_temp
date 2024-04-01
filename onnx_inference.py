@@ -360,6 +360,7 @@ if __name__ == "__main__":
         if choice == "1":
             rand_image, label = YOLOv9.sample_random_image_and_label_from_dir(TEST_DIR)
             output_image = detection.predict(rand_image)
+            print(rand_image)
 
             # Determine the color based on the label
             if (
