@@ -7,29 +7,74 @@ from PIL import Image
 import torch
 
 
-# def convert_images_to_jpeg(directory):
-#     # Iterate over all files in the directory
-#     for filename in os.listdir(directory):
-#         # Check if the file is an image and not already a .jpeg
-#         if not filename.lower().endswith(".jpeg"):
-#             # Construct the full file path
-#             file_path = os.path.join(directory, filename)
-#             # Attempt to open the image
-#             try:
-#                 with Image.open(file_path) as img:
-#                     # Define the new filename with .jpeg extension
-#                     new_filename = os.path.splitext(filename)[0] + ".jpeg"
-#                     new_file_path = os.path.join(directory, new_filename)
-#                     # Convert and save the image in .jpeg format
-#                     img.convert("RGB").save(new_file_path, "JPEG")
-#                     # If the new file was successfully created, delete the original file
-#                     if os.path.exists(new_file_path):
-#                         os.remove(file_path)
-#                         print(f"Converted and removed: {filename}")
-#                     else:
-#                         print(f"Failed to convert: {filename}")
-#             except IOError:
-#                 print(f"Error opening or processing image: {filename}")
+def get_sorted_images_and_labels_from_dir(directory):
+    # Get all image files from the directory
+    image_files = [
+        os.path.join(directory, f)
+        for f in os.listdir(directory)
+        if os.path.isfile(os.path.join(directory, f))
+    ]
+
+    # Prepare base directory for positive and negative path checks
+    base_dir = os.path.dirname(directory)
+
+    # Initialize a list to hold tuples of (selected_image, label)
+    images_and_labels = []
+
+    # Loop through all image files to determine their labels
+    for image_file in image_files:
+        positive_path = os.path.join(base_dir, "positive", os.path.basename(image_file))
+        negative_path = os.path.join(base_dir, "negative", os.path.basename(image_file))
+
+        # Determine the label based on the existence of the file in positive/negative directories
+        if os.path.exists(positive_path):
+            label = 1  # Label for positive
+        elif os.path.exists(negative_path):
+            label = 0  # Label for negative
+        else:
+            continue  # Skip images that don't exist in either directory
+
+        # Append the selected image and its label as a tuple
+        images_and_labels.append((image_file, label))
+
+    # Sort the list of tuples based on the image files
+    images_and_labels.sort(key=lambda x: x[0])
+
+    # Unpack the sorted list of tuples into two lists
+    selected_images, labels = zip(*images_and_labels) if images_and_labels else ([], [])
+
+    return list(selected_images), list(labels)
+
+
+def sample_random_image_and_label_from_dir(directory, seed=None) -> Tuple[str, int]:
+    # Get all image files from the directory that ends with .jpeg
+    image_files = [
+        os.path.join(directory, f)
+        for f in os.listdir(directory)
+        if os.path.isfile(os.path.join(directory, f)) and f.endswith(".jpeg")
+    ]
+
+    # Seed the random generator if a seed is provided
+    if seed:
+        random.seed(seed)
+
+    # Choose a random image file
+    selected_image = random.choice(image_files)
+
+    # Prepare paths to check in positive and negative directories
+    base_dir = os.path.dirname(directory)
+    positive_path = os.path.join(base_dir, "positive", os.path.basename(selected_image))
+    negative_path = os.path.join(base_dir, "negative", os.path.basename(selected_image))
+
+    # Determine the label based on the existence of the file in positive/negative directories
+    if os.path.exists(positive_path):
+        label = "positive"
+    elif os.path.exists(negative_path):
+        label = "negative"
+    else:
+        label = "unknown"  # In case the image doesn't exist in either directory for some reason
+
+    return selected_image, label
 
 
 def sample_random_image_from_dir(directory_path, seed=None, valid_extensions=("jpeg")):
@@ -354,7 +399,7 @@ def convert_images_to_jpeg(directory_path):
 
         # If the file is already a JPEG, skip it
         if extension.lower() in [".jpeg", ".jpg"]:
-            print(f"{filename} is already a JPEG. Skipping conversion.")
+            # print(f"{filename} is already a JPEG. Skipping conversion.")
             continue
 
         # Convert to JPEG format
@@ -372,30 +417,59 @@ def convert_images_to_jpeg(directory_path):
             print(f"Error processing {filename}: {e}")
 
 
+def compare_directories(dir1, dir2):
+    # Get the set of file names in each directory
+    files_dir1 = set(os.listdir(dir1))
+    files_dir2 = set(os.listdir(dir2))
+
+    # Check if all files in dir2 are in dir1
+    if files_dir2.issubset(files_dir1):
+        print(f"{dir2} is a subset of {dir1}")
+        return False, []
+    else:
+        # Return the list of files in dir1 and not in dir2
+        return True, list(files_dir1 - files_dir2)
+
+
 if __name__ == "__main__":
+    pass
 
-    base_path = "./yolo_dataset"
-    subdir = "positive"
-    splits = (0.8, 0.1, 0.1)
+    # difference, image_list = compare_directories(
+    #     "yolo_dataset/mar24/positive", "yolo_dataset/mar24/test"
+    # )
 
-    clean_destination_dirs(base_path, ("train", "validation", "test"))
+    # if difference:
+    #     print(image_list)
 
-    split_and_copy_dataset(base_path, subdir, splits)
-    subdir = "negative"
-    split_and_copy_dataset(base_path, subdir, splits)
-    subdir = "no-area"
-    split_and_copy_dataset(base_path, subdir, splits)
+    # difference, image_list = compare_directories(
+    #     "yolo_dataset/mar24/negative", "yolo_dataset/mar24/test"
+    # )
 
-    # Checks if dir have same images and labels filename
-    _types = ["train", "validation", "test"]
+    # if difference:
+    #     print(image_list)
 
-    for _type in _types:
-        labels_dir = f"./yolo_dataset/{_type}/labels"
-        images_dir = f"./yolo_dataset/{_type}/images"
-        match, missing_in_images, missing_in_labels = check_filenames_match(
-            images_dir, labels_dir
-        )
-        print(f"Filenames match for {_type} dir is {match}")
-        if not match:
-            print(f"Missing in images: {missing_in_images}")
-            print(f"Missing in labels: {missing_in_labels}")
+    # base_path = "./yolo_dataset"
+    # subdir = "positive"
+    # splits = (0.8, 0.1, 0.1)
+
+    # clean_destination_dirs(base_path, ("train", "validation", "test"))
+
+    # split_and_copy_dataset(base_path, subdir, splits)
+    # subdir = "negative"
+    # split_and_copy_dataset(base_path, subdir, splits)
+    # subdir = "no-area"
+    # split_and_copy_dataset(base_path, subdir, splits)
+
+    # # Checks if dir have same images and labels filename
+    # _types = ["train", "validation", "test"]
+
+    # for _type in _types:
+    #     labels_dir = f"./yolo_dataset/{_type}/labels"
+    #     images_dir = f"./yolo_dataset/{_type}/images"
+    #     match, missing_in_images, missing_in_labels = check_filenames_match(
+    #         images_dir, labels_dir
+    #     )
+    #     print(f"Filenames match for {_type} dir is {match}")
+    #     if not match:
+    #         print(f"Missing in images: {missing_in_images}")
+    #         print(f"Missing in labels: {missing_in_labels}")

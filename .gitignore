@@ -5,3 +5,7 @@ converted/
 results/
 *.pyc
 tuning_results/
+aws_training/
+*.jpeg
+*.jpg
+*.png

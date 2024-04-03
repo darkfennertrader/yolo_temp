@@ -11,20 +11,20 @@ from metrics import MetricsCalculator
 from helper import convert_images_to_jpeg
 
 
-ONNX_MODEL = "./models/fine_tuned_Mar24.onnx"
+ONNX_MODEL = "models/fine_tuned_Mar24.onnx"
 CONFIDENCE_THRES = 0.535
 IOU_THRES = 0.7
 TEST_DIR = "yolo_dataset/mar24/test2"
 
-model = YOLO("models/fine_tuned_Mar24.pt").export(
-    format="onnx",
-    # conf=CONFIDENCE_THRES,
-    # iou=IOU_THRES,
-    # opset=9,
-    # simplify=True,
-    # nms=True,
-    data="yolo_dataset/dataset.yaml",
-)
+# model = YOLO("models/fine_tuned_Mar24.pt").export(
+#     format="onnx",
+#     # conf=CONFIDENCE_THRES,
+#     # iou=IOU_THRES,
+#     # opset=9,
+#     # simplify=True,
+#     # nms=True,
+#     data="yolo_dataset/dataset.yaml",
+# )
 
 
 class YOLOv9:
@@ -176,7 +176,11 @@ class YOLOv9:
         """
         Performs post-processing on the model's output to extract bounding boxes, scores, and class IDs.
 
-        Args:yolo_dataset/mar24/negative/LoscialpoTvert014.jpeg
+        Args:
+            input_image (numpy.ndarray): The input image.
+            output (numpy.ndarray): The output of the model.
+
+        Returns:
             numpy.ndarray: The input image with detections drawn on it.
         """
 
@@ -226,46 +230,28 @@ class YOLOv9:
         indices = cv2.dnn.NMSBoxes(boxes, scores, self.confidence_thres, self.iou_thres)
 
         # Iterate over the selected indices after non-maximum suppression
-        # print("indices:", indices)
-        # class_id = None
-        score_candidates = []
-        print("\n", "*" * 20)
         for i in indices:
             # Get the box, score, and class ID corresponding to the index
             box = boxes[i]
             score = scores[i]
-            # print(score)
             class_id = class_ids[i]
-            # print(class_id)
-            # Draw the detection on the input image for every index after NMS
+
+            # Draw the detection on the input image
+            print(box)
+            print(score)
+            print(class_id)
             self.draw_detections(input_image, box, score, class_id)
 
-        print(box)
-        print("\n", "*" * 20)
-        # score_candidates.append((i, score))
-        ######################################################################
-        # draw the rectangle that corresponds to the max predicted prob. if any
-        # if len(score_candidates) > 0:
-        #     max_value_index = self.get_max_score_index(score_candidates)
-        #     box = boxes[max_value_index]
-        #     score = scores[max_value_index]
-        #     class_id = class_ids[max_value_index]
-
-        # Draw the detection on the input image
-        # self.draw_detections(input_image, box, score, class_id)
-
-        # account for the images whose prediction is None
-        # if not class_id:
-        #     class_id = 0
-        ########################################################################
         # Return the modified input image
-        return input_image, class_id
+        return input_image
 
     def predict(self, input_image):
         img_data = self.preprocess(input_image)
         # Run inference using the preprocessed image data
         outputs = self.session.run(None, {self.model_inputs[0].name: img_data})
         # Perform post-processing on the outputs to obtain output image.
+        print("\n", "*" * 20)
+        print(input_image)
         return self.postprocess(self.img, outputs)  # output image
 
     @staticmethod
@@ -448,7 +434,7 @@ if __name__ == "__main__":
             print("\nPerforming predictions in parallel. Please wait...")
             results = perform_predictions_in_parallel(images_list, labels_list)
             print("\n", results)
-            YOLOv9.metrics_computation(results)
+            # YOLOv9.metrics_computation(results)
 
         elif choice == "3":
             print("Exiting...")

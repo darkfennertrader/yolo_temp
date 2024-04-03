@@ -121,8 +121,10 @@ def assign_labels(pos_dir, neg_dir, test_dir):
 
 if __name__ == "__main__":
 
-    modelpath = "models/fine_tuned.pt"
+    modelpath = "models/fine_tuned_Mar24.pt"
     model = YOLO(modelpath)
+    threshold = 0.535
+    iou = 0.7
 
     # convert_images_to_jpeg("yolo_dataset/mar24/positive")
 
@@ -140,28 +142,39 @@ if __name__ == "__main__":
     ####    NEW TEST SET MARCH 2024   ######
     pos_dir = "yolo_dataset/mar24/positive"
     neg_dir = "yolo_dataset/mar24/negative"
-    testdir = "yolo_dataset/mar24/test"
+    testdir = "yolo_dataset/mar24/test2"
 
     ground_truth_labels = assign_labels(pos_dir, neg_dir, testdir)
-    # print(ground_truth_labels[:20])
+    print(ground_truth_labels[:20])
     ##############################################################
-
+    print("Testing the model. Please wait...")
     test_images = list_of_images(testdir)
-    # print(test_images)
+    print(test_images)
     predictions = []
     pred_probabilities = []
     detection_counts = []
     for test_image in test_images:
-        result = model.predict(test_image, conf=0.45, device=0, augment=True)[0]
+        result = model.predict(
+            test_image, conf=threshold, iou=iou, device=0, augment=False, verbose=False
+        )[0]
         # print(result)
         boxes = result.boxes
 
         # print("\n", "*" * 80)
         # print(boxes)
+        # print("\n", "*" * 20)
         if boxes.cls.numel() == 0:
+            # print("no elements:")
+            # print(test_image)
+            # print(boxes)
+            # print("*" * 20)
             predictions.append(0)
             pred_probabilities.append(1)
+
         else:
+            # print("With elements:")
+            # print(test_image)
+            # print(boxes)
             _class, _conf, num_elements, _ = format_output_single_element(
                 boxes.cls, boxes.conf, boxes.data
             )
@@ -177,8 +190,7 @@ if __name__ == "__main__":
     metrics = MetricsCalculator(
         ground_truth_labels, predictions, pred_probabilities, detection_counts
     )
-
-    print(metrics.compute_f1())
-    print(metrics.compute_precision())
-    print(metrics.compute_recall())
-    metrics.save_and_show_plots("metrics_test_conf=0.45_augment.jpeg", show=True)
+    print(f"F1 metric: {metrics.compute_f1():.2f}")
+    print(f"Precision: {metrics.compute_precision():.2f}")
+    print(f"Recall   : {metrics.compute_recall():.2f}")
+    metrics.save_and_show_plots(f"metrics_test2Mar24_conf={threshold}.jpeg", show=True)

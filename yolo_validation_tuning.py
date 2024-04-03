@@ -27,10 +27,10 @@ def generate_linspace(start, stop, step):
 
 if __name__ == "__main__":
 
-    modelpath = "models/fine_tuned.pt"
+    modelpath = "models/fine_tuned_Mar24.pt"
     valdir = "yolo_dataset/validation/images"
     labelsdir = "yolo_dataset/validation/labels"
-    focus_type = "focus6"
+    focus_type = "focus_augment"
 
     os.makedirs(f"tuning_results/{focus_type}", exist_ok=False)
 
@@ -44,7 +44,7 @@ if __name__ == "__main__":
 
     # List to hold each iteration's metrics
     metrics_data = []
-    for _threshold in generate_linspace(0.01, 0.8, 0.01):
+    for _threshold in generate_linspace(0.55, 0.67, 0.01):
         filename = generate_unique_filename(f"tuning_results/{focus_type}/report")
         predictions = []
         pred_probabilities = []
