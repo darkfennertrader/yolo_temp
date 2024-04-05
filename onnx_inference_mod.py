@@ -165,13 +165,6 @@ class YOLOv9:
         # Return the preprocessed image data
         return image_data
 
-    def get_max_score_index(self, score_candidates):
-
-        max_score_tuple = max(score_candidates, key=lambda item: item[1])
-
-        # Return the "i" part of the tuple with the maximum score.
-        return max_score_tuple[0]
-
     def postprocess(self, input_image, output):
         """
         Performs post-processing on the model's output to extract bounding boxes, scores, and class IDs.
@@ -186,9 +179,11 @@ class YOLOv9:
 
         # Transpose and squeeze the output to match the expected shape
         outputs = np.transpose(np.squeeze(output[0]))
+        print(outputs.shape)
 
         # Get the number of rows in the outputs array
         rows = outputs.shape[0]
+        print(rows)
 
         # Lists to store the bounding boxes, scores, and class IDs of the detections
         boxes = []
@@ -230,11 +225,13 @@ class YOLOv9:
         indices = cv2.dnn.NMSBoxes(boxes, scores, self.confidence_thres, self.iou_thres)
 
         # Iterate over the selected indices after non-maximum suppression
+        class_ids_list = []
         for i in indices:
             # Get the box, score, and class ID corresponding to the index
             box = boxes[i]
             score = scores[i]
             class_id = class_ids[i]
+            class_ids_list.append(class_id)
 
             # Draw the detection on the input image
             print(box)
@@ -242,8 +239,11 @@ class YOLOv9:
             print(class_id)
             self.draw_detections(input_image, box, score, class_id)
 
+        if not class_ids_list:
+            class_ids_list = [0]
+
         # Return the modified input image
-        return input_image
+        return input_image, class_ids_list
 
     def predict(self, input_image):
         img_data = self.preprocess(input_image)
@@ -352,8 +352,8 @@ class YOLOv9:
 def worker_function(image_path, ground_truth):
     # Create a new instance inside each worker
     yolo_instance = YOLOv9()
-    _, prediction = yolo_instance.predict(image_path)
-    return (prediction, ground_truth, image_path)
+    prediction, class_ids_list = yolo_instance.predict(image_path)
+    return (class_ids_list, ground_truth, image_path)
 
 
 def perform_predictions_in_parallel(image_paths, ground_truths):
@@ -383,7 +383,7 @@ if __name__ == "__main__":
 
         if choice == "1":
             rand_image, label = YOLOv9.sample_random_image_and_label_from_dir(TEST_DIR)
-            output_image, _ = detection.predict(rand_image)
+            output_image = detection.predict(rand_image)
             print(rand_image)
 
             # Determine the color based on the label

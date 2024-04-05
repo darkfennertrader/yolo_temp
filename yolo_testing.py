@@ -142,14 +142,14 @@ if __name__ == "__main__":
     ####    NEW TEST SET MARCH 2024   ######
     pos_dir = "yolo_dataset/mar24/positive"
     neg_dir = "yolo_dataset/mar24/negative"
-    testdir = "yolo_dataset/mar24/test2"
+    testdir = "yolo_dataset/mar24/test"
 
     ground_truth_labels = assign_labels(pos_dir, neg_dir, testdir)
     print(ground_truth_labels[:20])
     ##############################################################
     print("Testing the model. Please wait...")
     test_images = list_of_images(testdir)
-    print(test_images)
+    # print(test_images)
     predictions = []
     pred_probabilities = []
     detection_counts = []
@@ -175,6 +175,10 @@ if __name__ == "__main__":
             # print("With elements:")
             # print(test_image)
             # print(boxes)
+            if boxes.cls.numel() > 1:
+                print("Multiple Boxes")
+                print(test_image)
+                print(boxes.cls.numel())
             _class, _conf, num_elements, _ = format_output_single_element(
                 boxes.cls, boxes.conf, boxes.data
             )

@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 from helper import (
     sample_random_image_and_label_from_dir,
     get_sorted_images_and_labels_from_dir,
+    format_output_single_element,
 )
 
 
@@ -33,17 +34,37 @@ def draw_bounding_box_yolo(image_path, bbox_yolo, prediction, label, thickness=2
 
     # Load the image
     image = cv2.imread(image_path)
-    h, w, _ = image.shape
 
-    # Convert from YOLO format to xmin, ymin, xmax, ymax format
-    x_center, y_center, width, height = bbox_yolo
-    xmin = int((x_center - width / 2) * w)
-    xmax = int((x_center + width / 2) * w)
-    ymin = int((y_center - height / 2) * h)
-    ymax = int((y_center + height / 2) * h)
+    ##############################################################
+    # h, w, _ = image.shape
+
+    # # Convert from YOLO format to xmin, ymin, xmax, ymax format
+    # x_center, y_center, width, height = bbox_yolo
+    # xmin = int((x_center - width / 2) * w)
+    # xmax = int((x_center + width / 2) * w)
+    # ymin = int((y_center - height / 2) * h)
+    # ymax = int((y_center + height / 2) * h)
+
+    # # Draw the bounding box
+    # cv2.rectangle(image, (xmin, ymin), (xmax, ymax), pred_color, thickness)
+
+    #############################################################
+    # Extract coordinates
+    xmin, ymin, xmax, ymax = bbox_yolo
+
+    # Sanity check: Ensure bounding box is within image dimensions
+    h, w, _ = image.shape
+    xmin = max(0, min(xmin, w - 1))
+    xmax = max(0, min(xmax, w - 1))
+    ymin = max(0, min(ymin, h - 1))
+    ymax = max(0, min(ymax, h - 1))
 
     # Draw the bounding box
-    cv2.rectangle(image, (xmin, ymin), (xmax, ymax), pred_color, thickness)
+    cv2.rectangle(
+        image, (int(xmin), int(ymin)), (int(xmax), int(ymax)), pred_color, thickness
+    )
+
+    #################################################################
 
     # Display prediction and label at the top left of the image
     font_scale = 1
@@ -109,20 +130,34 @@ def yolo_inference(model, threshold, iou, image, ground_truth):
     )[0].boxes
 
     if result.cls.numel() == 0:
-        pred = 0
+        conf = None
+        pred = 0.0
         bbox = [0, 0, 0, 0]
     else:
-        pred = result.cls.item()
-        bbox = result.xywhn.cpu().numpy().tolist()[0]
-
-    # print("*" * 20)
-    # print(result)
-    # print()
-    # print(result.xywh)
-    # print(result.cls.numel())
-    # print("*" * 20)
+        if result.cls.numel() > 1:
+            print()
+            print(f"multiple boxes for {image}")
+            print()
+        class_max, conf_max, num_elements, data_max = format_output_single_element(
+            result.cls, result.conf, result.data
+        )
+        print(data_max)
+        pred = class_max.item()
+        conf = conf_max.item()
+        bbox = data_max[:, :4].cpu().numpy().tolist()[0]
 
     true_label = label_text[ground_truth]
+
+    print("\n", "*" * 20)
+    # print(result)
+    # print()
+    print(image)
+    print("orig. shape:", result.orig_shape)
+    print("Confidence:", conf)
+    print("Prediction:", pred)
+    print("ground truth:", true_label)
+    print()
+    print(bbox)
 
     draw_bounding_box_yolo(image, bbox, label_text[pred], true_label)
 
